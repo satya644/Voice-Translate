@@ -641,7 +641,14 @@ async function handleMic() {
   }
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: { 
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true
+        }
+      });
     startRecording(stream);
   } catch (err) {
     setStatus('❌', 'Microphone access nahi mila!');
@@ -721,10 +728,12 @@ async function processAudio() {
 
   try {
     // Step 1: Transcribe
-    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+    const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
     const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.webm');
+    const ext = audioBlob.type.includes('mp4') ? 'mp4' : audioBlob.type.includes('ogg') ? 'ogg' : 'webm';
+    formData.append('file', audioBlob, `audio.${ext}`);
     formData.append('model', 'whisper-large-v3');
+    formData.append('language', 'hi');
 
     const transcribeRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
       method: 'POST',
