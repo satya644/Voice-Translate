@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Voice Translator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+Devanagari:wght@300;400;600&display=swap');
+
+  :root {
+    --bg: #0d0d0d;
+    --surface: #161616;
+    --surface2: #1f1f1f;
+    --border: #2a2a2a;
+    --accent: #00ff88;
+    --accent2: #ff3366;
+    --text: #f0f0f0;
+    --text-dim: #555;
+    --text-mid: #888;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans Devanagari', sans-serif;
+    min-height: 100vh;
+    max-width: 420px;
+    margin: 0 auto;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    padding: 20px 16px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-icon {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .brand-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .brand-sub {
+    font-size: 9px;
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: blink 1.5s infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  /* Language selector */
+  .lang-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  .lang-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .lang-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .lang-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .lang-btn.active {
+    background: rgba(0,255,136,0.1);
+    border-color: var(--accent);
+  }
+
+  .lang-btn:active { transform: scale(0.95); }
+
+  .lang-flag { font-size: 18px; display: block; margin-bottom: 2px; }
+  .lang-name {
+    font-size: 9px;
+    font-family: 'Space Mono', monospace;
+    color: var(--text-mid);
+    display: block;
+  }
+
+  .lang-btn.active .lang-name { color: var(--accent); }
+
+  /* Duration selector */
+  .duration-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .duration-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .duration-btns {
+    display: flex;
+    gap: 6px;
+  }
+
+  .dur-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text-mid);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .dur-btn.active {
+    background: rgba(0,255,136,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Main mic button */
+  .mic-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 0;
+  }
+
+  .mic-outer {
+    position: relative;
+    width: 140px;
+    height: 140px;
+  }
+
+  .mic-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(0,255,136,0.2);
+    animation: ringPulse 2s infinite;
+  }
+
+  .mic-ring:nth-child(2) {
+    inset: -12px;
+    animation-delay: 0.5s;
+    border-color: rgba(0,255,136,0.1);
+  }
+
+  .mic-ring:nth-child(3) {
+    inset: -24px;
+    animation-delay: 1s;
+    border-color: rgba(0,255,136,0.05);
+  }
+
+  @keyframes ringPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.5; }
+  }
+
+  .mic-btn {
+    position: relative;
+    z-index: 1;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+    box-shadow: 0 0 30px rgba(0,255,136,0.1);
+  }
+
+  .mic-btn.recording {
+    background: rgba(255,51,102,0.1);
+    border-color: var(--accent2);
+    box-shadow: 0 0 40px rgba(255,51,102,0.2);
+    animation: recordPulse 1s infinite;
+  }
+
+  @keyframes recordPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+  }
+
+  .mic-btn.processing {
+    border-color: #f59e0b;
+    box-shadow: 0 0 30px rgba(245,158,11,0.2);
+  }
+
+  .mic-icon { font-size: 40px; }
+  .mic-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .mic-btn.recording .mic-text { color: var(--accent2); }
+  .mic-btn.processing .mic-text { color: #f59e0b; }
+
+  /* Timer */
+  .timer {
+    font-family: 'Space Mono', monospace;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 4px;
+    display: none;
+  }
+
+  .timer.visible { display: block; }
+
+  /* Result cards */
+  .result-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    min-height: 70px;
+    transition: all 0.3s;
+  }
+
+  .result-card.has-content {
+    border-color: rgba(0,255,136,0.2);
+  }
+
+  .result-card-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .result-card-label span {
+    color: var(--accent);
+  }
+
+  .result-text {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text);
+    min-height: 24px;
+  }
+
+  .result-text.empty {
+    color: var(--text-dim);
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Play button */
+  .play-btn {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,255,136,0.1);
+    border: 1px solid rgba(0,255,136,0.3);
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--accent);
+    letter-spacing: 1px;
+    margin-top: 10px;
+    transition: all 0.2s;
+  }
+
+  .play-btn.visible { display: flex; }
+  .play-btn:active { transform: scale(0.96); }
+
+  /* Status bar */
+  .status-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status-icon { font-size: 14px; }
+  .status-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text-mid);
+    letter-spacing: 0.5px;
+  }
+
+  /* History */
+  .history-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+  }
+
+  .history-header {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .history-item {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .history-item:last-child { border-bottom: none; }
+
+  .history-lang {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .history-texts { flex: 1; }
+
+  .history-original {
+    font-size: 11px;
+    color: var(--text-mid);
+    margin-bottom: 2px;
+  }
+
+  .history-translated {
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .history-empty {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-align: center;
+    padding: 10px 0;
+  }
+
+  /* Loading dots */
+  .loading {
+    display: none;
+    gap: 4px;
+    align-items: center;
+    margin-top: 4px;
+  }
+
+  .loading.visible { display: flex; }
+
+  .loading span {
+    width: 5px;
+    height: 5px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: loadBounce 1.2s infinite;
+  }
+
+  .loading span:nth-child(2) { animation-delay: 0.2s; }
+  .loading span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes loadBounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
+    40% { transform: translateY(-5px); opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="brand">
+      <div class="brand-icon">🌐</div>
+      <div>
+        <div class="brand-text">VoiceTranslate</div>
+        <div class="brand-sub">AI Powered</div>
+      </div>
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      LIVE
+    </div>
+  </div>
+
+  <!-- Language Selector -->
+  <div class="lang-section">
+    <div class="lang-label">Target Language</div>
+    <div class="lang-grid">
+      <button class="lang-btn active" onclick="selectLang(this, 'Hindi', 'hi')" data-lang="Hindi" data-code="hi">
+        <span class="lang-flag">🇮🇳</span>
+        <span class="lang-name">Hindi</span>
+      </button>
+      <button class="lang-btn" onclick="selectLang(this, 'English', 'en')" data-lang="English" data-code="en">
+        <span class="lang-flag">🇬🇧</span>
+        <span class="lang-name">English</span>
+      </button>
+      <button class="lang-btn" onclick="selectLang(this, 'Gujarati', 'gu')" data-lang="Gujarati" data-code="gu">
+        <span class="lang-flag">🇮🇳</span>
+        <span class="lang-name">Gujarati</span>
+      </button>
+      <button class="lang-btn" onclick="selectLang(this, 'Chinese', 'zh')" data-lang="Chinese" data-code="zh">
+        <span class="lang-flag">🇨🇳</span>
+        <span class="lang-name">Chinese</span>
+      </button>
+      <button class="lang-btn" onclick="selectLang(this, 'Tamil', 'ta')" data-lang="Tamil" data-code="ta">
+        <span class="lang-flag">🇮🇳</span>
+        <span class="lang-name">Tamil</span>
+      </button>
+      <button class="lang-btn" onclick="selectLang(this, 'Telugu', 'te')" data-lang="Telugu" data-code="te">
+        <span class="lang-flag">🇮🇳</span>
+        <span class="lang-name">Telugu</span>
+      </button>
+      <button class="lang-btn" onclick="selectLang(this, 'Bengali', 'bn')" data-lang="Bengali" data-code="bn">
+        <span class="lang-flag">🇧🇩</span>
+        <span class="lang-name">Bengali</span>
+      </button>
+      <button class="lang-btn" onclick="selectLang(this, 'Odia', 'bn')" data-lang="Odia" data-code="bn">
+        <span class="lang-flag">🇮🇳</span>
+        <span class="lang-name">Odia</span>
+      </button>
+    </div>
+
+    <div class="duration-row">
+      <div class="duration-label">Record Time</div>
+      <div class="duration-btns">
+        <button class="dur-btn active" onclick="setDuration(this, 5)">5s</button>
+        <button class="dur-btn" onclick="setDuration(this, 10)">10s</button>
+        <button class="dur-btn" onclick="setDuration(this, 15)">15s</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mic Button -->
+  <div class="mic-section">
+    <div class="mic-outer">
+      <div class="mic-ring"></div>
+      <div class="mic-ring"></div>
+      <div class="mic-ring"></div>
+      <button class="mic-btn" id="micBtn" onclick="handleMic()">
+        <span class="mic-icon" id="micIcon">🎤</span>
+        <span class="mic-text" id="micText">TAP TO SPEAK</span>
+      </button>
+    </div>
+    <div class="timer" id="timer">0:05</div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar" id="statusBar">
+    <span class="status-icon">💡</span>
+    <span class="status-text" id="statusText">Select language and tap mic to start</span>
+  </div>
+
+  <!-- Results -->
+  <div class="result-section">
+    <div class="result-card" id="originalCard">
+      <div class="result-card-label">
+        ORIGINAL TEXT
+        <span id="detectedLang"></span>
+      </div>
+      <div class="result-text empty" id="originalText">Tumhari awaaz yahan dikhegi...</div>
+      <div class="loading" id="originalLoading">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+
+    <div class="result-card" id="translatedCard">
+      <div class="result-card-label">
+        TRANSLATION
+        <span id="targetLangLabel">Hindi</span>
+      </div>
+      <div class="result-text empty" id="translatedText">Translation yahan aayega...</div>
+      <div class="loading" id="translationLoading">
+        <span></span><span></span><span></span>
+      </div>
+      <button class="play-btn" id="playBtn" onclick="playAudio()">
+        ▶ PLAY AUDIO
+      </button>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="history-section">
+    <div class="history-header">Recent Translations</div>
+    <div id="historyList">
+      <div class="history-empty">Abhi koi translation nahi hai</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ========== CONFIG ==========
+const GROQ_API_KEY = "YOUR_GROQ_KEY_YAHAN_DAALO";
+
+let selectedLang = "Hindi";
+let selectedCode = "hi";
+let duration = 5;
+let isRecording = false;
+let mediaRecorder = null;
+let audioChunks = [];
+let timerInterval = null;
+let lastTranslation = "";
+let history = [];
+
+// ========== Language Selection ==========
+function selectLang(btn, lang, code) {
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedLang = lang;
+  selectedCode = code;
+  document.getElementById('targetLangLabel').textContent = lang;
+}
+
+function setDuration(btn, secs) {
+  document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  duration = secs;
+}
+
+// ========== Mic Handling ==========
+async function handleMic() {
+  if (isRecording) return;
+
+  if (GROQ_API_KEY === "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") {
+    setStatus('⚠️', 'Pehle Groq API key daalo!');
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    startRecording(stream);
+  } catch (err) {
+    setStatus('❌', 'Microphone access nahi mila!');
+  }
+}
+
+function startRecording(stream) {
+  isRecording = true;
+  audioChunks = [];
+
+  const micBtn = document.getElementById('micBtn');
+  const micIcon = document.getElementById('micIcon');
+  const micText = document.getElementById('micText');
+  const timer = document.getElementById('timer');
+
+  micBtn.classList.add('recording');
+  micIcon.textContent = '⏺';
+  micText.textContent = 'RECORDING...';
+  timer.classList.add('visible');
+
+  // Timer countdown
+  let remaining = duration;
+  updateTimer(remaining);
+  timerInterval = setInterval(() => {
+    remaining--;
+    updateTimer(remaining);
+    if (remaining <= 0) {
+      clearInterval(timerInterval);
+    }
+  }, 1000);
+
+  setStatus('🔴', 'Recording chal rahi hai... bolte raho!');
+
+  mediaRecorder = new MediaRecorder(stream);
+  mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+  mediaRecorder.onstop = () => {
+    stream.getTracks().forEach(t => t.stop());
+    processAudio();
+  };
+
+  mediaRecorder.start();
+  setTimeout(() => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
+  }, duration * 1000);
+}
+
+function updateTimer(secs) {
+  document.getElementById('timer').textContent = `0:${String(secs).padStart(2,'0')}`;
+}
+
+// ========== Process Audio ==========
+async function processAudio() {
+  isRecording = false;
+  const micBtn = document.getElementById('micBtn');
+  const micIcon = document.getElementById('micIcon');
+  const micText = document.getElementById('micText');
+  const timer = document.getElementById('timer');
+
+  micBtn.classList.remove('recording');
+  micBtn.classList.add('processing');
+  micIcon.textContent = '⚙️';
+  micText.textContent = 'PROCESSING';
+  timer.classList.remove('visible');
+
+  // Reset results
+  document.getElementById('originalText').className = 'result-text empty';
+  document.getElementById('originalText').textContent = '...';
+  document.getElementById('translatedText').className = 'result-text empty';
+  document.getElementById('translatedText').textContent = '...';
+  document.getElementById('playBtn').classList.remove('visible');
+
+  // Show loading
+  document.getElementById('originalLoading').classList.add('visible');
+  setStatus('🔄', 'Awaaz samajh raha hai...');
+
+  try {
+    // Step 1: Transcribe
+    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'audio.webm');
+    formData.append('model', 'whisper-large-v3');
+
+    const transcribeRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${GROQ_API_KEY}` },
+      body: formData
+    });
+
+    const transcribeData = await transcribeRes.json();
+    const originalText = transcribeData.text || '';
+
+    document.getElementById('originalLoading').classList.remove('visible');
+    document.getElementById('originalText').className = 'result-text';
+    document.getElementById('originalText').textContent = originalText || 'Kuch samajh nahi aaya...';
+    document.getElementById('originalCard').classList.add('has-content');
+
+    if (!originalText) {
+      setStatus('⚠️', 'Awaaz clear nahi thi, dobara try karo');
+      resetMic();
+      return;
+    }
+
+    // Step 2: Translate
+    document.getElementById('translationLoading').classList.add('visible');
+    setStatus('🌐', `${selectedLang} mein translate ho raha hai...`);
+
+    const translateRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{
+          role: 'user',
+          content: `Translate to ${selectedLang}. Only give the translation, nothing else: ${originalText}`
+        }],
+        max_tokens: 512,
+        temperature: 0.3
+      })
+    });
+
+    const translateData = await translateRes.json();
+    const translated = translateData.choices?.[0]?.message?.content || '';
+
+    document.getElementById('translationLoading').classList.remove('visible');
+    document.getElementById('translatedText').className = 'result-text';
+    document.getElementById('translatedText').textContent = translated;
+    document.getElementById('translatedCard').classList.add('has-content');
+    document.getElementById('playBtn').classList.add('visible');
+
+    lastTranslation = translated;
+
+    // Add to history
+    addHistory(originalText, translated);
+    setStatus('✅', 'Translation ready! Play karo ya dobara bolo');
+
+    // Auto play
+    playAudio();
+
+  } catch (err) {
+    setStatus('❌', 'Error aaya. Internet check karo.');
+  }
+
+  resetMic();
+}
+
+// ========== Play Audio ==========
+function playAudio() {
+  if (!lastTranslation) return;
+  const utterance = new SpeechSynthesisUtterance(lastTranslation);
+  utterance.lang = selectedCode;
+  utterance.rate = 0.9;
+  window.speechSynthesis.speak(utterance);
+  setStatus('🔊', 'Audio chal rahi hai...');
+}
+
+// ========== History ==========
+function addHistory(original, translated) {
+  const flags = {
+    'Hindi': '🇮🇳', 'English': '🇬🇧', 'Gujarati': '🇮🇳',
+    'Chinese': '🇨🇳', 'Tamil': '🇮🇳', 'Telugu': '🇮🇳',
+    'Bengali': '🇧🇩', 'Odia': '🇮🇳'
+  };
+
+  history.unshift({ lang: selectedLang, flag: flags[selectedLang] || '🌐', original, translated });
+  if (history.length > 5) history.pop();
+
+  const list = document.getElementById('historyList');
+  list.innerHTML = history.map(h => `
+    <div class="history-item">
+      <span class="history-lang">${h.flag}</span>
+      <div class="history-texts">
+        <div class="history-original">${h.original.substring(0, 50)}${h.original.length > 50 ? '...' : ''}</div>
+        <div class="history-translated">${h.translated.substring(0, 60)}${h.translated.length > 60 ? '...' : ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ========== Helpers ==========
+function setStatus(icon, text) {
+  document.getElementById('statusBar').querySelector('.status-icon').textContent = icon;
+  document.getElementById('statusText').textContent = text;
+}
+
+function resetMic() {
+  const micBtn = document.getElementById('micBtn');
+  const micIcon = document.getElementById('micIcon');
+  const micText = document.getElementById('micText');
+  micBtn.classList.remove('recording', 'processing');
+  micIcon.textContent = '🎤';
+  micText.textContent = 'TAP TO SPEAK';
+}
+</script>
+</body>
+</html>
